@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import Header from "./components/layout/Header";
+import Dashboard from "./pages/Dashboard";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App: React.FC = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

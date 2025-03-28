@@ -6,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { ActivitySquare, Dumbbell, Flame, Trophy, User, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import TodaySnapshot from '@/components/dashboard/TodaySnapshot';
+import { toast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -50,8 +52,45 @@ const Dashboard = () => {
     { name: "Recovery Score", value: "85%", icon: <Heart className="h-4 w-4" /> }
   ];
 
+  const handleStartWorkout = () => {
+    toast({
+      title: "Starting workout",
+      description: "Preparing your workout session...",
+    });
+    // Navigate to workout page or show workout modal
+  };
+
+  const handleLogMeal = () => {
+    toast({
+      title: "Log a meal",
+      description: "Track what you've eaten today",
+    });
+    navigate('/nutrition');
+  };
+
+  const handleUpdateProgress = () => {
+    toast({
+      title: "Update progress",
+      description: "Track your fitness journey",
+    });
+    // Show progress update modal or navigate to progress page
+  };
+
   return (
     <div className="container mx-auto p-4 py-8 max-w-6xl">
+      {/* Today's Snapshot */}
+      <div className="mb-6">
+        <TodaySnapshot
+          todaysWorkout={todaysWorkout.name}
+          workoutDuration="45 minutes"
+          caloriesRemaining={850}
+          caloriesGoal={2000}
+          onStartWorkout={handleStartWorkout}
+          onLogMeal={handleLogMeal}
+          onUpdateProgress={handleUpdateProgress}
+        />
+      </div>
+      
       <div className="flex flex-col md:flex-row justify-between items-start gap-6">
         {/* Left column - User profile and weekly overview */}
         <div className="w-full md:w-1/3 space-y-6">
