@@ -7,8 +7,6 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from "@/components/ui/carousel";
 
 const OnboardingSlides = [
@@ -54,14 +52,10 @@ const Onboarding = () => {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-3xl mx-auto auth-card">
         <CardContent className="p-0">
-          <Carousel className="w-full"
-            onSelect={(index) => setCurrentSlide(index)}
-            index={currentSlide}
-            setIndex={setCurrentSlide}
-          >
+          <Carousel className="w-full">
             <CarouselContent>
               {OnboardingSlides.map((slide, index) => (
-                <CarouselItem key={index}>
+                <CarouselItem key={index} onClick={() => setCurrentSlide(index)}>
                   <div className="p-6 flex flex-col items-center text-center">
                     <div className="size-32 rounded-full fitness-gradient flex items-center justify-center mb-6">
                       <div className="text-white text-xl font-bold">{slide.imagePlaceholder}</div>
@@ -80,6 +74,7 @@ const Onboarding = () => {
                   className={`size-2 rounded-full transition-all ${
                     currentSlide === index ? "bg-primary w-6" : "bg-gray-300"
                   }`}
+                  onClick={() => setCurrentSlide(index)}
                 />
               ))}
             </div>
