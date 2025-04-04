@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { signup as authSignup } from "@/services/authService";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SignupForm = () => {
   const [name, setName] = useState("");
@@ -23,6 +25,7 @@ const SignupForm = () => {
   const [role, setRole] = useState("user");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,12 +57,14 @@ const SignupForm = () => {
     }
     
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Register user with auth service
+      const response = await authSignup(name, email, password);
       
-      // Mock successful signup
+      // Save user to context
+      login(response.user);
+      
       toast.success("Account created successfully!");
-      navigate("/dashboard");
+      navigate("/onboarding");
     } catch (error) {
       toast.error("Sign up failed. Please try again.");
     } finally {
