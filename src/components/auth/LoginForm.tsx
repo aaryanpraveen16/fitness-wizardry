@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -59,6 +58,27 @@ const LoginForm = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Add a demo login function
+  const handleDemoLogin = () => {
+    setIsLoading(true);
+    
+    // Simulate login success
+    setTimeout(() => {
+      const demoUser = {
+        id: "demo-123",
+        name: "Demo User",
+        email: "demo@example.com",
+      };
+      
+      // Save demo user to context
+      login(demoUser);
+      
+      toast.success("Demo login successful!");
+      navigate("/dashboard");
+      setIsLoading(false);
+    }, 1000);
   };
 
   return (
@@ -128,6 +148,11 @@ const LoginForm = () => {
           </div>
         </div>
         
+        <Button variant="outline" className="w-full mb-2" onClick={handleDemoLogin} type="button">
+          <User className="mr-2 size-4" />
+          Demo Login (Skip Authentication)
+        </Button>
+
         <Button variant="outline" className="w-full" type="button">
           <svg
             className="mr-2 size-4"
