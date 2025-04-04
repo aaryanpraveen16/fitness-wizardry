@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { login as authLogin } from "@/services/authService";
 import { useAuth } from "@/contexts/AuthContext";
+import { User, Lock, Mail } from "lucide-react";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -61,25 +62,31 @@ const LoginForm = () => {
   };
 
   return (
-    <Card className="auth-card">
+    <Card className="auth-card shadow-lg border-0">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-        <CardDescription>
-          Enter your email and password to sign in to your account
+        <CardTitle className="text-2xl font-bold text-center">Welcome Back</CardTitle>
+        <CardDescription className="text-center">
+          Enter your credentials to access your fitness journey
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
+                <Mail size={18} />
+              </div>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-10"
+                required
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -91,13 +98,19 @@ const LoginForm = () => {
                 Forgot password?
               </Link>
             </div>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
+                <Lock size={18} />
+              </div>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-10"
+                required
+              />
+            </div>
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Signing in..." : "Sign In"}
@@ -138,6 +151,9 @@ const LoginForm = () => {
             Sign up
           </Link>
         </p>
+        <Link to="/" className="text-center text-sm text-muted-foreground mt-2 hover:underline">
+          Back to Home
+        </Link>
       </CardFooter>
     </Card>
   );
