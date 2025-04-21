@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { ActivitySquare, Dumbbell, Flame, Trophy, User, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TodaySnapshot from '@/components/dashboard/TodaySnapshot';
+import LogWorkoutModal from '@/components/dashboard/LogWorkoutModal';
+import LogMealModal from '@/components/dashboard/LogMealModal';
 import { toast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
@@ -15,14 +16,12 @@ const Dashboard = () => {
   const [progress, setProgress] = useState(68); // Sample progress
   
   useEffect(() => {
-    // Load profile data from localStorage
     const savedProfile = localStorage.getItem('fitnessProfile');
     if (savedProfile) {
       setProfile(JSON.parse(savedProfile));
     }
   }, []);
   
-  // Sample data for dashboard
   const weeklyWorkouts = [
     { day: 'Mon', completed: true, focus: 'Chest & Triceps' },
     { day: 'Tue', completed: true, focus: 'Back & Biceps' },
@@ -52,20 +51,36 @@ const Dashboard = () => {
     { name: "Recovery Score", value: "85%", icon: <Heart className="h-4 w-4" /> }
   ];
 
+  const [showWorkoutModal, setShowWorkoutModal] = useState(false);
+  const [showMealModal, setShowMealModal] = useState(false);
+
+  const [loggedWorkouts, setLoggedWorkouts] = useState<{name: string, duration: number}[]>([]);
+  const [loggedMeals, setLoggedMeals] = useState<{name: string, calories: number}[]>([]);
+
   const handleStartWorkout = () => {
-    toast({
-      title: "Starting workout",
-      description: "Preparing your workout session...",
-    });
-    // Navigate to workout page or show workout modal
+    setShowWorkoutModal(true);
   };
 
   const handleLogMeal = () => {
+    setShowMealModal(true);
+  };
+
+  const handleLogWorkout = (workout: {name: string, duration: number}) => {
+    setLoggedWorkouts(prev => [...prev, workout]);
     toast({
-      title: "Log a meal",
-      description: "Track what you've eaten today",
+      title: "Workout Logged",
+      description: `${workout.name} (${workout.duration} min)`,
     });
-    navigate('/nutrition');
+    setShowWorkoutModal(false);
+  };
+
+  const handleLogMealSave = (meal: {name: string, calories: number}) => {
+    setLoggedMeals(prev => [...prev, meal]);
+    toast({
+      title: "Meal Logged",
+      description: `${meal.name} (${meal.calories} kcal)`,
+    });
+    setShowMealModal(false);
   };
 
   const handleUpdateProgress = () => {
@@ -78,7 +93,6 @@ const Dashboard = () => {
 
   return (
     <div className="container mx-auto p-4 py-8 max-w-6xl">
-      {/* Today's Snapshot */}
       <div className="mb-6">
         <TodaySnapshot
           todaysWorkout={todaysWorkout.name}
@@ -87,14 +101,55 @@ const Dashboard = () => {
           caloriesGoal={2000}
           onStartWorkout={handleStartWorkout}
           onLogMeal={handleLogMeal}
-          onUpdateProgress={handleUpdateProgress}
         />
       </div>
-      
+
+      {(showWorkoutModal || showMealModal) && (
+        <>
+          <LogWorkoutModal
+            isOpen={showWorkoutModal}
+            onClose={() => setShowWorkoutModal(false)}
+            onLog={handleLogWorkout}
+          />
+          <LogMealModal
+            isOpen={showMealModal}
+            onClose={() => setShowMealModal(false)}
+            onLog={handleLogMealSave}
+          />
+        </>
+      )}
+
+      {(loggedWorkouts.length > 0 || loggedMeals.length > 0) && (
+        <div className="my-8">
+          {loggedWorkouts.length > 0 && (
+            <div className="mb-4">
+              <h2 className="font-semibold text-lg mb-2">Workouts Logged</h2>
+              <ul>
+                {loggedWorkouts.map((w, i) => (
+                  <li key={i}>
+                    {w.name} - {w.duration} min
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {loggedMeals.length > 0 && (
+            <div>
+              <h2 className="font-semibold text-lg mb-2">Meals Logged</h2>
+              <ul>
+                {loggedMeals.map((m, i) => (
+                  <li key={i}>
+                    {m.name} - {m.calories} kcal
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start gap-6">
-        {/* Left column - User profile and weekly overview */}
         <div className="w-full md:w-1/3 space-y-6">
-          {/* User profile card */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center">
@@ -128,7 +183,6 @@ const Dashboard = () => {
             </CardContent>
           </Card>
           
-          {/* Weekly progress */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center">
@@ -164,7 +218,6 @@ const Dashboard = () => {
             </CardContent>
           </Card>
           
-          {/* Stats */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Stats This Week</CardTitle>
@@ -185,7 +238,6 @@ const Dashboard = () => {
           </Card>
         </div>
         
-        {/* Right column - Today's workout */}
         <div className="w-full md:w-2/3">
           <Card className="h-full">
             <CardHeader>

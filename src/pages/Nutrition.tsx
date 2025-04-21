@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -378,9 +377,8 @@ const Nutrition = () => {
                       ))}
                     </div>
                   )}
-                  
                   <div className="flex justify-center">
-                    <Button variant="outline" onClick={() => setShowFoodModal(true)}>
+                    <Button variant="secondary" onClick={() => setShowFoodModal(true)}>
                       <Plus className="h-4 w-4 mr-2" /> Create custom food
                     </Button>
                   </div>
