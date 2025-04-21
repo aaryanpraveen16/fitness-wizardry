@@ -1,13 +1,14 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, LineChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Camera, Check, Plus } from "lucide-react";
+import ProgressForm from "@/components/progress/ProgressForm";
 
 const Progress = () => {
   const [activeTab, setActiveTab] = useState("weight");
+  const [showForm, setShowForm] = useState(false);
 
   // Sample data for charts
   const weightData = [
@@ -66,6 +67,14 @@ const Progress = () => {
           Track your fitness journey and see how far you've come.
         </p>
 
+        <div className="w-full mb-6">
+          <Button onClick={() => setShowForm(!showForm)} className="mb-4">
+            {showForm ? "Hide Form" : "Log New Progress"}
+          </Button>
+          
+          {showForm && <ProgressForm />}
+        </div>
+
         <Tabs defaultValue="weight" className="w-full" onValueChange={setActiveTab}>
           <TabsList className="mb-6">
             <TabsTrigger value="weight">Weight</TabsTrigger>
@@ -75,7 +84,7 @@ const Progress = () => {
             <TabsTrigger value="photos">Progress Photos</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="weight" className="w-full">
+          <TabsContent value="weight">
             <Card>
               <CardHeader>
                 <CardTitle>Weight Tracking</CardTitle>
@@ -115,7 +124,7 @@ const Progress = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="workouts" className="w-full">
+          <TabsContent value="workouts">
             <Card>
               <CardHeader>
                 <CardTitle>Workout Consistency</CardTitle>
@@ -142,7 +151,7 @@ const Progress = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="measurements" className="w-full">
+          <TabsContent value="measurements">
             <Card>
               <CardHeader>
                 <CardTitle>Body Measurements</CardTitle>
@@ -178,6 +187,7 @@ const Progress = () => {
                       </div>
                     );
                   })}
+                  
                   <Button className="w-full sm:w-auto mt-4">
                     <Plus className="mr-2 h-4 w-4" /> Update Measurements
                   </Button>
@@ -216,7 +226,7 @@ const Progress = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="photos" className="w-full">
+          <TabsContent value="photos">
             <Card>
               <CardHeader>
                 <CardTitle>Progress Photos</CardTitle>

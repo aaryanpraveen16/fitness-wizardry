@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,17 +11,18 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { signup as authSignup } from "@/services/authService";
 import { useAuth } from "@/contexts/AuthContext";
+import { register } from "@/services/authService";
 
 const SignupForm = () => {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState("user");
+  const [height, setHeight] = useState("");
+  const [weight, setWeight] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -32,7 +32,7 @@ const SignupForm = () => {
     setIsLoading(true);
     
     // Client side validation
-    if (!name || !email || !password || !confirmPassword) {
+    if (!firstName || !lastName || !email || !password || !confirmPassword || !height || !weight) {
       toast.error("Please fill in all fields");
       setIsLoading(false);
       return;
@@ -55,10 +55,16 @@ const SignupForm = () => {
       setIsLoading(false);
       return;
     }
-    
+
     try {
-      // Register user with auth service
-      const response = await authSignup(name, email, password);
+      const response = await register({
+        firstName,
+        lastName,
+        email,
+        password,
+        height: parseFloat(height),
+        weight: parseFloat(weight)
+      });
       
       // Save user to context
       login(response.user);
@@ -66,7 +72,7 @@ const SignupForm = () => {
       toast.success("Account created successfully!");
       navigate("/onboarding");
     } catch (error) {
-      toast.error("Sign up failed. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Sign up failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -82,15 +88,27 @@ const SignupForm = () => {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
-            <Input
-              id="name"
-              placeholder="John Doe"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                placeholder="John"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                placeholder="Doe"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -123,17 +141,29 @@ const SignupForm = () => {
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
-            <Select value={role} onValueChange={setRole}>
-              <SelectTrigger id="role">
-                <SelectValue placeholder="Select role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="user">User</SelectItem>
-                <SelectItem value="trainer">Trainer</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="height">Height (cm)</Label>
+              <Input
+                id="height"
+                type="number"
+                placeholder="175"
+                value={height}
+                onChange={(e) => setHeight(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="weight">Weight (kg)</Label>
+              <Input
+                id="weight"
+                type="number"
+                placeholder="70"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                required
+              />
+            </div>
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Creating account..." : "Create Account"}

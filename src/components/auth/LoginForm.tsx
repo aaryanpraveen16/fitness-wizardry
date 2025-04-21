@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { login as authLogin } from "@/services/authService";
+import { login } from "@/services/authService";
 import { useAuth } from "@/contexts/AuthContext";
 import { User, Lock, Mail } from "lucide-react";
 
@@ -22,7 +22,7 @@ const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login: authLogin } = useAuth();
 
   // Check if there's a redirect path in the location state
   const from = location.state?.from?.pathname || "/dashboard";
@@ -46,15 +46,15 @@ const LoginForm = () => {
     
     try {
       // Real login attempt with the auth service
-      const response = await authLogin(email, password);
+      const response = await login({ email, password });
       
       // Save user to context
-      login(response.user);
+      authLogin(response.user);
       
       toast.success("Login successful!");
       navigate(from, { replace: true });
     } catch (error) {
-      toast.error(error.message || "Login failed. Please check your credentials.");
+      toast.error(error instanceof Error ? error.message : "Login failed. Please check your credentials.");
     } finally {
       setIsLoading(false);
     }
@@ -67,13 +67,16 @@ const LoginForm = () => {
     // Simulate login success
     setTimeout(() => {
       const demoUser = {
-        id: "demo-123",
-        name: "Demo User",
+        userId: 123,
+        firstName: "Demo",
+        lastName: "User",
         email: "demo@example.com",
+        height: 175,
+        weight: 70
       };
       
       // Save demo user to context
-      login(demoUser);
+      authLogin(demoUser);
       
       toast.success("Demo login successful!");
       navigate("/dashboard");
