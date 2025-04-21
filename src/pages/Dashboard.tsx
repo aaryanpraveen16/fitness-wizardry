@@ -4,13 +4,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
-import { ActivitySquare, Dumbbell, Flame, Trophy, User, Heart, Check, SquareCheck } from 'lucide-react';
+import { ActivitySquare, Dumbbell, Flame, Trophy, User, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TodaySnapshot from '@/components/dashboard/TodaySnapshot';
 import LogWorkoutModal from '@/components/dashboard/LogWorkoutModal';
 import LogMealModal from '@/components/dashboard/LogMealModal';
 import { toast } from '@/hooks/use-toast';
 import MealLoggedCard from '@/components/dashboard/MealLoggedCard';
+import MacrosSummary from '@/components/dashboard/MacrosSummary';
+import ExerciseTracker from '@/components/dashboard/ExerciseTracker';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -63,7 +65,39 @@ const Dashboard = () => {
   const [showMealModal, setShowMealModal] = useState(false);
 
   const [loggedWorkouts, setLoggedWorkouts] = useState<{name: string, duration: number}[]>([]);
-  const [loggedMeals, setLoggedMeals] = useState<{name: string, calories: number}[]>([]);
+  const [loggedMeals, setLoggedMeals] = useState<{
+    name: string, 
+    calories: number,
+    protein?: number,
+    carbs?: number,
+    fat?: number,
+    mealType?: string
+  }[]>([]);
+
+  // Calculate macronutrients
+  const [macros, setMacros] = useState({
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    totalCalories: 0,
+    calorieGoal: 2000
+  });
+
+  // Update macros when logged meals change
+  useEffect(() => {
+    const totalProtein = loggedMeals.reduce((sum, meal) => sum + (meal.protein || 0), 0);
+    const totalCarbs = loggedMeals.reduce((sum, meal) => sum + (meal.carbs || 0), 0);
+    const totalFat = loggedMeals.reduce((sum, meal) => sum + (meal.fat || 0), 0);
+    const totalCals = loggedMeals.reduce((sum, meal) => sum + meal.calories, 0);
+    
+    setMacros({
+      protein: totalProtein,
+      carbs: totalCarbs,
+      fat: totalFat,
+      totalCalories: totalCals,
+      calorieGoal: 2000 // Could be dynamic based on user profile
+    });
+  }, [loggedMeals]);
 
   // Check if all exercises are completed
   const allExercisesDone = exerciseStatus.every(Boolean);
@@ -86,7 +120,14 @@ const Dashboard = () => {
     setShowWorkoutModal(false);
   };
 
-  const handleLogMealSave = (meal: {name: string, calories: number}) => {
+  const handleLogMealSave = (meal: {
+    name: string, 
+    calories: number,
+    protein: number,
+    carbs: number,
+    fat: number,
+    mealType: string
+  }) => {
     setLoggedMeals(prev => [...prev, meal]);
     toast({
       title: "Meal Logged",
@@ -96,11 +137,7 @@ const Dashboard = () => {
   };
 
   const handleUpdateProgress = () => {
-    toast({
-      title: "Update progress",
-      description: "Track your fitness journey",
-    });
-    // Show progress update modal or navigate to progress page
+    navigate('/progress');
   };
 
   // Handler for exercise completion, updates progress when all are done
@@ -108,19 +145,22 @@ const Dashboard = () => {
     setExerciseStatus((prev) => {
       const next = [...prev];
       next[index] = !next[index];
-      // After updating, show toast and update progress if all done
-      if (next.every(Boolean)) {
-        setProgress(prevProgress => {
-          const newVal = Math.min(100, prevProgress + 5);
-          return newVal;
-        });
-        toast({
-          title: "Workout Complete!",
-          description: "Great job completing your session and all exercises.",
-        });
-      }
       return next;
     });
+  };
+  
+  // Handler for workout completion
+  const handleWorkoutComplete = () => {
+    if (allExercisesDone) {
+      setProgress(prevProgress => {
+        const newVal = Math.min(100, prevProgress + 5);
+        return newVal;
+      });
+      toast({
+        title: "Workout Complete!",
+        description: "Great job completing your session and all exercises.",
+      });
+    }
   };
 
   return (
@@ -129,7 +169,7 @@ const Dashboard = () => {
         <TodaySnapshot
           todaysWorkout={todaysWorkout.name}
           workoutDuration="45 minutes"
-          caloriesRemaining={850}
+          caloriesRemaining={2000 - macros.totalCalories}
           caloriesGoal={2000}
           onStartWorkout={handleStartWorkout}
           onLogMeal={handleLogMeal}
@@ -153,14 +193,34 @@ const Dashboard = () => {
       )}
 
       {(loggedWorkouts.length > 0 || loggedMeals.length > 0) && (
-        <div className="my-8 grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="my-8 space-y-6">
+          {loggedMeals.length > 0 && (
+            <div>
+              <h2 className="font-semibold text-lg mb-4">Today's Nutrition</h2>
+              <MacrosSummary 
+                protein={macros.protein}
+                carbs={macros.carbs}
+                fat={macros.fat}
+                totalCalories={macros.totalCalories}
+                calorieGoal={macros.calorieGoal}
+              />
+              
+              <h3 className="font-semibold text-md mt-6 mb-3">Meals Logged</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {loggedMeals.map((m, i) => (
+                  <MealLoggedCard key={i} meal={m} />
+                ))}
+              </div>
+            </div>
+          )}
+          
           {loggedWorkouts.length > 0 && (
-            <div className="sm:col-span-2 md:col-span-1 mb-4">
+            <div className="mt-8">
               <h2 className="font-semibold text-lg mb-2">Workouts Logged</h2>
-              <ul className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {loggedWorkouts.map((w, i) => (
                   <Card key={i} className="border bg-gradient-to-tr from-purple-50 via-white to-green-50 shadow-md">
-                    <CardContent className="py-2 px-4 flex items-center gap-4">
+                    <CardContent className="py-4 px-4 flex items-center gap-4">
                       <Dumbbell className="text-primary h-5 w-5" />
                       <div>
                         <p className="font-semibold">{w.name}</p>
@@ -168,16 +228,6 @@ const Dashboard = () => {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </ul>
-            </div>
-          )}
-          {loggedMeals.length > 0 && (
-            <div>
-              <h2 className="font-semibold text-lg mb-2">Meals Logged</h2>
-              <div className="space-y-2">
-                {loggedMeals.map((m, i) => (
-                  <MealLoggedCard key={i} meal={m} />
                 ))}
               </div>
             </div>
@@ -276,69 +326,14 @@ const Dashboard = () => {
         </div>
         
         <div className="w-full md:w-2/3">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Dumbbell className="mr-2 h-5 w-5" />
-                Today's Workout: {todaysWorkout.name}
-              </CardTitle>
-              <CardDescription>
-                Complete your workout and track your progress
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {todaysWorkout.exercises.map((exercise, i) => (
-                  <div key={i} className="flex items-center justify-between pb-4 border-b last:border-0">
-                    <div>
-                      <p className="font-medium">{exercise.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {exercise.sets} sets × {exercise.reps} reps · {exercise.weight}
-                      </p>
-                    </div>
-                    <Button 
-                      variant={exerciseStatus[i] ? "default" : "secondary"}
-                      className={`flex items-center gap-2 ${exerciseStatus[i] ? 'bg-green-500 hover:bg-green-600' : ''}`}
-                      onClick={() => handleExerciseLog(i)}
-                      disabled={exerciseStatus[i]}
-                    >
-                      {exerciseStatus[i] ? (
-                        <>
-                          <SquareCheck className="h-4 w-4" />
-                          Completed
-                        </>
-                      ) : (
-                        "Mark Done"
-                      )}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={() => navigate('/workouts')}>
-                Change Workout
-              </Button>
-              <Button 
-                onClick={() => {
-                  if (allExercisesDone) {
-                    toast({
-                      title: "You already completed today’s workout!",
-                      description: "All exercises are done.",
-                    });
-                  } else {
-                    toast({
-                      title: "Finish all exercises before completing the workout.",
-                      description: "Mark every exercise done to complete.",
-                    });
-                  }
-                }}
-                disabled={allExercisesDone}
-              >
-                {allExercisesDone ? "Workout Complete" : "Complete Workout"}
-              </Button>
-            </CardFooter>
-          </Card>
+          <ExerciseTracker 
+            workoutName={todaysWorkout.name}
+            exercises={todaysWorkout.exercises}
+            exerciseStatus={exerciseStatus}
+            onExerciseLog={handleExerciseLog}
+            onComplete={handleWorkoutComplete}
+            onChangeWorkout={() => navigate('/workout-plans')}
+          />
         </div>
       </div>
     </div>
