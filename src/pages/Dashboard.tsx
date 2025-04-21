@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -101,6 +101,7 @@ const Dashboard = () => {
           caloriesGoal={2000}
           onStartWorkout={handleStartWorkout}
           onLogMeal={handleLogMeal}
+          onUpdateProgress={handleUpdateProgress}
         />
       </div>
 

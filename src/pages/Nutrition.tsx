@@ -298,7 +298,7 @@ const Nutrition = () => {
                             </div>
                           ))
                         ) : (
-                          <Alert variant="outline" className="bg-muted/50">
+                          <Alert className="bg-muted/50">
                             <AlertDescription className="flex items-center justify-center py-2 text-muted-foreground">
                               <Utensils className="h-4 w-4 mr-2" />
                               No foods logged for {mealType}
