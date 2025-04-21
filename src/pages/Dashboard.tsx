@@ -1,27 +1,29 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
-import { ActivitySquare, Dumbbell, Flame, Trophy, User, Heart } from 'lucide-react';
+import { ActivitySquare, Dumbbell, Flame, Trophy, User, Heart, Check, SquareCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TodaySnapshot from '@/components/dashboard/TodaySnapshot';
 import LogWorkoutModal from '@/components/dashboard/LogWorkoutModal';
 import LogMealModal from '@/components/dashboard/LogMealModal';
 import { toast } from '@/hooks/use-toast';
+import MealLoggedCard from '@/components/dashboard/MealLoggedCard';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [progress, setProgress] = useState(68); // Sample progress
-  
+
   useEffect(() => {
     const savedProfile = localStorage.getItem('fitnessProfile');
     if (savedProfile) {
       setProfile(JSON.parse(savedProfile));
     }
   }, []);
-  
+
   const weeklyWorkouts = [
     { day: 'Mon', completed: true, focus: 'Chest & Triceps' },
     { day: 'Tue', completed: true, focus: 'Back & Biceps' },
@@ -31,19 +33,25 @@ const Dashboard = () => {
     { day: 'Sat', completed: false, focus: 'Cardio' },
     { day: 'Sun', completed: false, focus: 'Rest Day' }
   ];
-  
+
+  // Track exercise completion
+  const [exerciseStatus, setExerciseStatus] = useState<boolean[]>(() =>
+    Array(6).fill(false)
+  );
+
+  // Today's workout and exercise structure using exerciseStatus
   const todaysWorkout = {
     name: "Upper Body Strength",
     exercises: [
-      { name: "Bench Press", sets: "4", reps: "8-10", weight: "60kg", completed: false },
-      { name: "Pull-ups", sets: "3", reps: "8-10", weight: "Bodyweight", completed: false },
-      { name: "Overhead Press", sets: "3", reps: "10-12", weight: "25kg", completed: false },
-      { name: "Barbell Rows", sets: "4", reps: "10-12", weight: "50kg", completed: false },
-      { name: "Tricep Pushdowns", sets: "3", reps: "12-15", weight: "20kg", completed: false },
-      { name: "Bicep Curls", sets: "3", reps: "12-15", weight: "15kg", completed: false }
+      { name: "Bench Press", sets: "4", reps: "8-10", weight: "60kg" },
+      { name: "Pull-ups", sets: "3", reps: "8-10", weight: "Bodyweight" },
+      { name: "Overhead Press", sets: "3", reps: "10-12", weight: "25kg" },
+      { name: "Barbell Rows", sets: "4", reps: "10-12", weight: "50kg" },
+      { name: "Tricep Pushdowns", sets: "3", reps: "12-15", weight: "20kg" },
+      { name: "Bicep Curls", sets: "3", reps: "12-15", weight: "15kg" }
     ]
   };
-  
+
   const stats = [
     { name: "Workouts Completed", value: "12", icon: <Dumbbell className="h-4 w-4" /> },
     { name: "Active Calories", value: "4,320", icon: <Flame className="h-4 w-4" /> },
@@ -57,7 +65,11 @@ const Dashboard = () => {
   const [loggedWorkouts, setLoggedWorkouts] = useState<{name: string, duration: number}[]>([]);
   const [loggedMeals, setLoggedMeals] = useState<{name: string, calories: number}[]>([]);
 
+  // Check if all exercises are completed
+  const allExercisesDone = exerciseStatus.every(Boolean);
+
   const handleStartWorkout = () => {
+    setExerciseStatus(Array(todaysWorkout.exercises.length).fill(false));
     setShowWorkoutModal(true);
   };
 
@@ -91,6 +103,26 @@ const Dashboard = () => {
     // Show progress update modal or navigate to progress page
   };
 
+  // Handler for exercise completion, updates progress when all are done
+  const handleExerciseLog = (index: number) => {
+    setExerciseStatus((prev) => {
+      const next = [...prev];
+      next[index] = !next[index];
+      // After updating, show toast and update progress if all done
+      if (next.every(Boolean)) {
+        setProgress(prevProgress => {
+          const newVal = Math.min(100, prevProgress + 5);
+          return newVal;
+        });
+        toast({
+          title: "Workout Complete!",
+          description: "Great job completing your session and all exercises.",
+        });
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="container mx-auto p-4 py-8 max-w-6xl">
       <div className="mb-6">
@@ -121,15 +153,21 @@ const Dashboard = () => {
       )}
 
       {(loggedWorkouts.length > 0 || loggedMeals.length > 0) && (
-        <div className="my-8">
+        <div className="my-8 grid sm:grid-cols-2 md:grid-cols-3 gap-4">
           {loggedWorkouts.length > 0 && (
-            <div className="mb-4">
+            <div className="sm:col-span-2 md:col-span-1 mb-4">
               <h2 className="font-semibold text-lg mb-2">Workouts Logged</h2>
-              <ul>
+              <ul className="space-y-2">
                 {loggedWorkouts.map((w, i) => (
-                  <li key={i}>
-                    {w.name} - {w.duration} min
-                  </li>
+                  <Card key={i} className="border bg-gradient-to-tr from-purple-50 via-white to-green-50 shadow-md">
+                    <CardContent className="py-2 px-4 flex items-center gap-4">
+                      <Dumbbell className="text-primary h-5 w-5" />
+                      <div>
+                        <p className="font-semibold">{w.name}</p>
+                        <span className="text-xs text-muted-foreground">{w.duration} min</span>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </ul>
             </div>
@@ -137,13 +175,11 @@ const Dashboard = () => {
           {loggedMeals.length > 0 && (
             <div>
               <h2 className="font-semibold text-lg mb-2">Meals Logged</h2>
-              <ul>
+              <div className="space-y-2">
                 {loggedMeals.map((m, i) => (
-                  <li key={i}>
-                    {m.name} - {m.calories} kcal
-                  </li>
+                  <MealLoggedCard key={i} meal={m} />
                 ))}
-              </ul>
+              </div>
             </div>
           )}
         </div>
@@ -260,8 +296,20 @@ const Dashboard = () => {
                         {exercise.sets} sets × {exercise.reps} reps · {exercise.weight}
                       </p>
                     </div>
-                    <Button variant={exercise.completed ? "default" : "outline"}>
-                      {exercise.completed ? "Completed" : "Log"}
+                    <Button 
+                      variant={exerciseStatus[i] ? "default" : "secondary"}
+                      className={`flex items-center gap-2 ${exerciseStatus[i] ? 'bg-green-500 hover:bg-green-600' : ''}`}
+                      onClick={() => handleExerciseLog(i)}
+                      disabled={exerciseStatus[i]}
+                    >
+                      {exerciseStatus[i] ? (
+                        <>
+                          <SquareCheck className="h-4 w-4" />
+                          Completed
+                        </>
+                      ) : (
+                        "Mark Done"
+                      )}
                     </Button>
                   </div>
                 ))}
@@ -271,8 +319,23 @@ const Dashboard = () => {
               <Button variant="outline" onClick={() => navigate('/workouts')}>
                 Change Workout
               </Button>
-              <Button onClick={() => alert("Workout completed!")}>
-                Complete Workout
+              <Button 
+                onClick={() => {
+                  if (allExercisesDone) {
+                    toast({
+                      title: "You already completed today’s workout!",
+                      description: "All exercises are done.",
+                    });
+                  } else {
+                    toast({
+                      title: "Finish all exercises before completing the workout.",
+                      description: "Mark every exercise done to complete.",
+                    });
+                  }
+                }}
+                disabled={allExercisesDone}
+              >
+                {allExercisesDone ? "Workout Complete" : "Complete Workout"}
               </Button>
             </CardFooter>
           </Card>
