@@ -1,485 +1,302 @@
-
-import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { UserProfile, getUserProfiles, deleteProfile, setPrimaryProfile } from "@/services/profileService";
+import { User, Plus, Star, Trash2, Edit, Shield } from "lucide-react";
+import ProfileForm from "@/components/profile/ProfileForm";
 import { useToast } from "@/hooks/use-toast";
-import { User, Settings, Shield, LogOut, Bell } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-
-const profileSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  age: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: "Please enter a valid age.",
-  }),
-  height: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: "Please enter a valid height.",
-  }),
-  weight: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: "Please enter a valid weight.",
-  }),
-  gender: z.string().optional(),
-  goal: z.string().optional(),
-});
-
-const passwordSchema = z.object({
-  currentPassword: z.string().min(1, { message: "Current password is required." }),
-  newPassword: z.string().min(8, { message: "Password must be at least 8 characters." }),
-  confirmPassword: z.string().min(8, { message: "Please confirm your password." }),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
 
 const Profile = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState(null);
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [userId, setUserId] = useState(1); // Default user ID for now
+  const [showForm, setShowForm] = useState(false);
+  const [activeTab, setActiveTab] = useState("profiles");
+  const [editProfileId, setEditProfileId] = useState<number | null>(null);
 
-  // Create form for profile
-  const profileForm = useForm({
-    resolver: zodResolver(profileSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      age: "",
-      height: "",
-      weight: "",
-      gender: "",
-      goal: "",
-    },
-  });
-
-  // Create form for password
-  const passwordForm = useForm({
-    resolver: zodResolver(passwordSchema),
-    defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    },
-  });
-
+  // Load profiles on mount
   useEffect(() => {
-    // Load profile data from localStorage
-    const savedProfile = localStorage.getItem('fitnessProfile');
-    if (savedProfile) {
-      const profileData = JSON.parse(savedProfile);
-      setProfile(profileData);
+    loadProfiles();
+  }, [userId]);
+
+  const loadProfiles = () => {
+    const userProfiles = getUserProfiles(userId);
+    setProfiles(userProfiles);
+  };
+
+  const handleCreateProfile = () => {
+    setEditProfileId(null);
+    setShowForm(true);
+    setActiveTab("form");
+  };
+
+  const handleEditProfile = (profileId: number) => {
+    setEditProfileId(profileId);
+    setShowForm(true);
+    setActiveTab("form");
+  };
+
+  const handleSaveProfile = (profile: UserProfile) => {
+    loadProfiles();
+    setShowForm(false);
+    setEditProfileId(null);
+    setActiveTab("profiles");
+  };
+
+  const handleDeleteProfile = (profileId: number) => {
+    if (confirm("Are you sure you want to delete this profile? This action cannot be undone.")) {
+      const success = deleteProfile(profileId);
       
-      // Populate the form
-      profileForm.reset({
-        name: profileData.name || "",
-        email: profileData.email || "",
-        age: profileData.age ? profileData.age.toString() : "",
-        height: profileData.height ? profileData.height.toString() : "",
-        weight: profileData.weight ? profileData.weight.toString() : "",
-        gender: profileData.gender || "",
-        goal: profileData.fitnessGoal || "",
+      if (success) {
+        toast({
+          title: "Profile deleted",
+          description: "The profile has been successfully deleted."
+        });
+        loadProfiles();
+      } else {
+        toast({
+          title: "Error",
+          description: "There was an error deleting the profile.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const handleSetPrimary = (profileId: number) => {
+    const success = setPrimaryProfile(profileId);
+    
+    if (success) {
+      toast({
+        title: "Primary profile updated",
+        description: "Your primary profile has been updated."
       });
+      loadProfiles();
     } else {
-      // Mock data for demonstration
-      const mockProfile = {
-        name: "John Doe",
-        email: "john.doe@example.com",
-        age: 30,
-        height: 175,
-        weight: 75,
-        gender: "male",
-        fitnessGoal: "build-muscle",
-      };
-      setProfile(mockProfile);
-      
-      // Populate the form
-      profileForm.reset({
-        name: mockProfile.name,
-        email: mockProfile.email,
-        age: mockProfile.age.toString(),
-        height: mockProfile.height.toString(),
-        weight: mockProfile.weight.toString(),
-        gender: mockProfile.gender,
-        goal: mockProfile.fitnessGoal,
+      toast({
+        title: "Error",
+        description: "There was an error updating the primary profile.",
+        variant: "destructive"
       });
     }
-  }, []);
-  
-  const onProfileSubmit = (data) => {
-    setLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      // Update profile in localStorage
-      const updatedProfile = {
-        ...profile,
-        name: data.name,
-        email: data.email,
-        age: Number(data.age),
-        height: Number(data.height),
-        weight: Number(data.weight),
-        gender: data.gender,
-        fitnessGoal: data.goal,
-      };
-      
-      localStorage.setItem('fitnessProfile', JSON.stringify(updatedProfile));
-      setProfile(updatedProfile);
-      
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
-      });
-      
-      setLoading(false);
-    }, 1000);
   };
-  
-  const onPasswordSubmit = (data) => {
-    setLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      toast({
-        title: "Password updated",
-        description: "Your password has been changed successfully.",
-      });
-      
-      passwordForm.reset();
-      setLoading(false);
-    }, 1000);
+
+  const getEditingProfile = () => {
+    if (editProfileId) {
+      return profiles.find(p => p.id === editProfileId);
+    }
+    return undefined;
   };
-  
-  const handleLogout = () => {
-    // Simulate logout by removing JWT from localStorage
-    localStorage.removeItem('jwt');
-    
-    toast({
-      title: "Logged out",
-      description: "You have been logged out successfully.",
-    });
-    
-    navigate('/login');
-  };
-  
-  if (!profile) {
-    return <div className="container mx-auto p-4">Loading profile...</div>;
-  }
 
   return (
-    <div className="container mx-auto p-4 py-8 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-2">Profile</h1>
-      <p className="text-muted-foreground mb-6">
-        Manage your account settings and preferences.
-      </p>
-      
-      <Tabs defaultValue="general" className="w-full">
-        <TabsList className="mb-6">
-          <TabsTrigger value="general" className="flex items-center gap-2">
-            <User className="size-4" />
-            General
-          </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2">
-            <Shield className="size-4" />
-            Security
-          </TabsTrigger>
-          <TabsTrigger value="preferences" className="flex items-center gap-2">
-            <Settings className="size-4" />
-            Preferences
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="general">
-          <Card>
-            <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>
-                Update your personal details and profile information.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...profileForm}>
-                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={profileForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+    <div className="container mx-auto p-4 py-8 max-w-6xl">
+      <div className="flex flex-col items-start space-y-4">
+        <h1 className="text-3xl font-bold">Your Profiles</h1>
+        <p className="text-muted-foreground mb-6">
+          Manage profiles for yourself and your family members.
+        </p>
+
+        <div className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-6">
+              <TabsTrigger value="profiles">Profiles</TabsTrigger>
+              <TabsTrigger value="settings">Account Settings</TabsTrigger>
+              {showForm && <TabsTrigger value="form">
+                {editProfileId ? "Edit Profile" : "New Profile"}
+              </TabsTrigger>}
+            </TabsList>
+
+            <TabsContent value="profiles">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Add New Profile Card */}
+                <Card className="border-dashed">
+                  <CardContent className="flex flex-col items-center justify-center h-[300px] cursor-pointer" onClick={handleCreateProfile}>
+                    <Plus className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium">Create New Profile</h3>
+                    <p className="text-sm text-muted-foreground text-center mt-2">
+                      Add a new profile for yourself or a family member
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Existing Profiles */}
+                {profiles.map((profile) => (
+                  <Card key={profile.id} className={profile.isPrimary ? "border-primary" : ""}>
+                    <CardHeader className="relative">
+                      {profile.isPrimary && (
+                        <div className="absolute top-2 right-2 text-primary">
+                          <Star className="h-5 w-5 fill-primary" />
+                        </div>
                       )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input type="email" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                      <CardTitle className="flex items-center">
+                        <User className="h-5 w-5 mr-2" />
+                        {profile.name}
+                      </CardTitle>
+                      <CardDescription>
+                        {profile.isPrimary ? "Primary Profile" : "Secondary Profile"}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Age</p>
+                            <p className="font-medium">{profile.age} years</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Gender</p>
+                            <p className="font-medium capitalize">{profile.gender}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Height</p>
+                            <p className="font-medium">{profile.height} cm</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Weight</p>
+                            <p className="font-medium">{profile.weight} kg</p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-muted-foreground">Fitness Goal</p>
+                            <p className="font-medium capitalize">{profile.fitnessGoal?.replace('-', ' ')}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex justify-between">
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          onClick={() => handleEditProfile(profile.id)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        {!profile.isPrimary && (
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            onClick={() => handleDeleteProfile(profile.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {!profile.isPrimary && (
+                        <Button 
+                          variant="outline"
+                          onClick={() => handleSetPrimary(profile.id)}
+                        >
+                          Set as Primary
+                        </Button>
                       )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="age"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Age</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="gender"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Gender</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select gender" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="male">Male</SelectItem>
-                              <SelectItem value="female">Female</SelectItem>
-                              <SelectItem value="non-binary">Non-binary</SelectItem>
-                              <SelectItem value="other">Other</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="height"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Height (cm)</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="weight"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Weight (kg)</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="goal"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Fitness Goal</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select fitness goal" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="lose-weight">Lose Weight</SelectItem>
-                              <SelectItem value="build-muscle">Build Muscle</SelectItem>
-                              <SelectItem value="maintain-fitness">Maintain Fitness</SelectItem>
-                              <SelectItem value="build-endurance">Build Endurance</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="settings">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Shield className="h-5 w-5 mr-2" />
+                    Account Settings
+                  </CardTitle>
+                  <CardDescription>
+                    Manage your account settings and preferences
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="font-medium">Email Notifications</h3>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="emailWorkoutReminders"
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                      <label htmlFor="emailWorkoutReminders" className="text-sm">
+                        Workout reminders
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="emailProgressUpdates"
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                      <label htmlFor="emailProgressUpdates" className="text-sm">
+                        Weekly progress updates
+                      </label>
+                    </div>
                   </div>
                   
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "Saving..." : "Save Changes"}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="security">
-          <Card>
-            <CardHeader>
-              <CardTitle>Change Password</CardTitle>
-              <CardDescription>
-                Update your password to keep your account secure.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...passwordForm}>
-                <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-                  <FormField
-                    control={passwordForm.control}
-                    name="currentPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="space-y-2">
+                    <h3 className="font-medium">Privacy</h3>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="shareProgress"
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                      <label htmlFor="shareProgress" className="text-sm">
+                        Share my progress with trainers
+                      </label>
+                    </div>
+                  </div>
                   
-                  <FormField
-                    control={passwordForm.control}
-                    name="newPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>New Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Password must be at least 8 characters long.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={passwordForm.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirm New Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "Updating..." : "Update Password"}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-          
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Logout</CardTitle>
-              <CardDescription>
-                Sign out from your current session.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="destructive" onClick={handleLogout} className="flex items-center">
-                <LogOut className="mr-2 size-4" /> Logout
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="preferences">
-          <Card>
-            <CardHeader>
-              <CardTitle>App Preferences</CardTitle>
-              <CardDescription>
-                Customize your app experience.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium">Push Notifications</p>
-                  <p className="text-sm text-muted-foreground">
-                    Receive alerts for workouts, goals, and achievements.
-                  </p>
-                </div>
-                <div className="flex items-center">
-                  <Bell className="mr-2 size-4 text-muted-foreground" />
-                  <Select defaultValue="all">
-                    <SelectTrigger className="w-32">
-                      <SelectValue placeholder="Notifications" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="important">Important Only</SelectItem>
-                      <SelectItem value="none">None</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium">Units</p>
-                  <p className="text-sm text-muted-foreground">
-                    Choose your preferred measurement units.
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="w-24">Metric</Button>
-                  <Button variant="ghost" size="sm" className="w-24">Imperial</Button>
-                </div>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium">Weekly Start Day</p>
-                  <p className="text-sm text-muted-foreground">
-                    Set the first day of your week.
-                  </p>
-                </div>
-                <Select defaultValue="monday">
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Start day" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monday">Monday</SelectItem>
-                    <SelectItem value="sunday">Sunday</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <Button>Save Preferences</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                  <div className="space-y-2">
+                    <h3 className="font-medium">Unit Preferences</h3>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="metric"
+                          name="units"
+                          checked
+                          className="h-4 w-4 border-gray-300"
+                        />
+                        <label htmlFor="metric" className="text-sm">
+                          Metric (kg, cm)
+                        </label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="imperial"
+                          name="units"
+                          className="h-4 w-4 border-gray-300"
+                        />
+                        <label htmlFor="imperial" className="text-sm">
+                          Imperial (lb, ft/in)
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button>Save Settings</Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="form">
+              <ProfileForm
+                userId={userId}
+                profileId={editProfileId || undefined}
+                initialProfile={getEditingProfile()}
+                onSave={handleSaveProfile}
+                onCancel={() => {
+                  setShowForm(false);
+                  setEditProfileId(null);
+                  setActiveTab("profiles");
+                }}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   );
 };
