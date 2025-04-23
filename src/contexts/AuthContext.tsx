@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { User, isAuthenticated, getUserFromToken, logout } from "@/services/authService";
+import { User, isAuthenticated, getCurrentUser, logout } from "@/services/authService";
 
 interface AuthContextType {
   user: User | null;
@@ -31,11 +30,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   
   const refreshUser = () => {
+    console.log("Refreshing user data");
     if (isAuthenticated()) {
-      const userData = getUserFromToken();
+      const userData = getCurrentUser();
+      console.log("User data from localStorage:", userData);
       setUser(userData);
       return true;
     } else {
+      console.log("No authenticated user found");
       setUser(null);
       return false;
     }
@@ -43,15 +45,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   useEffect(() => {
     // Check if user is authenticated on initial load
+    console.log("AuthProvider initializing");
     refreshUser();
     setIsLoading(false);
   }, []);
   
   const login = (userData: User) => {
+    console.log("Setting user in AuthContext:", userData);
     setUser(userData);
   };
   
   const handleLogout = () => {
+    console.log("Logging out user");
     logout();
     setUser(null);
   };

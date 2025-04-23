@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,8 +36,20 @@ const NavLink = ({ to, label, currentPath }: NavLinkProps) => {
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { pathname } = useLocation();
-  const { user, isLoggedIn, logout } = useAuth();
+  const { user, isLoggedIn, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
+  
+  // Listen for auth state changes
+  useEffect(() => {
+    const handleAuthChange = () => {
+      refreshUser();
+    };
+    
+    window.addEventListener('authStateChanged', handleAuthChange);
+    return () => {
+      window.removeEventListener('authStateChanged', handleAuthChange);
+    };
+  }, [refreshUser]);
   
   // Don't show header on index page
   if (pathname === "/") {

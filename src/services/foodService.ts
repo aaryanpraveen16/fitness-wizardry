@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { getToken } from './authService';
 
@@ -15,8 +14,10 @@ const api = axios.create({
 // Add interceptor to add token to requests
 api.interceptors.request.use((config) => {
   const token = getToken();
+  console.log("Token retrieved:", token ? "Token exists" : "No token found");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+    console.log("Authorization header set:", config.headers.Authorization);
   }
   return config;
 });
@@ -33,6 +34,15 @@ export interface Food {
   isCustom?: boolean;
 }
 
+export interface FoodLogDto {
+  foodName: string;
+  mealType: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
 export interface Meal {
   id?: number;
   userId: number;
@@ -40,6 +50,27 @@ export interface Meal {
   type: 'breakfast' | 'lunch' | 'dinner' | 'snacks';
   foods: Food[];
 }
+
+// Log food
+export const logFood = async (foodLogDto: FoodLogDto): Promise<string> => {
+  try {
+    console.log("Attempting to log food:", foodLogDto);
+    const response = await api.post<string>('/food/log', foodLogDto);
+    console.log("Food logged successfully:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error logging food:", error);
+    if (axios.isAxiosError(error)) {
+      console.error("Axios error details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+      throw new Error(error.response?.data?.message || 'Failed to log food');
+    }
+    throw error;
+  }
+};
 
 // Local storage keys
 const FOOD_LOG_KEY = 'fitnessApp_foodLog';
@@ -77,28 +108,31 @@ export const saveMeal = (meal: Meal): Meal => {
 };
 
 // Add food to a meal
-export const addFoodToMeal = (userId: number, date: string, mealType: Meal['type'], food: Food): Meal => {
-  // Get meals for this user and date
-  const userMeals = getMeals(userId, date);
-  
-  // Find the specific meal or create it
-  let meal = userMeals.find(m => m.type === mealType);
-  
-  if (!meal) {
-    meal = {
+export const addFoodToMeal = async (userId: number, date: string, mealType: Meal['type'], food: Food): Promise<Meal> => {
+  try {
+    const foodLogDto: FoodLogDto = {
+      foodName: food.name,
+      mealType: mealType,
+      calories: food.calories,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat
+    };
+
+    await logFood(foodLogDto);
+
+    // Return the updated meal structure
+    return {
       id: Date.now(),
       userId,
       date,
       type: mealType,
-      foods: []
+      foods: [food]
     };
+  } catch (error) {
+    console.error('Error adding food to meal:', error);
+    throw error;
   }
-  
-  // Add the food to the meal
-  meal.foods.push({...food, id: Date.now()});
-  
-  // Save the updated meal
-  return saveMeal(meal);
 };
 
 // Remove food from a meal

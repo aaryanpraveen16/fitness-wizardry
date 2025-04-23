@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -18,15 +17,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [progress, setProgress] = useState(68); // Sample progress
-
-  useEffect(() => {
-    const savedProfile = localStorage.getItem('fitnessProfile');
-    if (savedProfile) {
-      setProfile(JSON.parse(savedProfile));
-    }
-  }, []);
-
-  const weeklyWorkouts = [
+  const [weeklyWorkouts, setWeeklyWorkouts] = useState([
     { day: 'Mon', completed: true, focus: 'Chest & Triceps' },
     { day: 'Tue', completed: true, focus: 'Back & Biceps' },
     { day: 'Wed', completed: true, focus: 'Rest Day' },
@@ -34,7 +25,14 @@ const Dashboard = () => {
     { day: 'Fri', completed: false, focus: 'Full Body' },
     { day: 'Sat', completed: false, focus: 'Cardio' },
     { day: 'Sun', completed: false, focus: 'Rest Day' }
-  ];
+  ]);
+
+  useEffect(() => {
+    const savedProfile = localStorage.getItem('fitnessProfile');
+    if (savedProfile) {
+      setProfile(JSON.parse(savedProfile));
+    }
+  }, []);
 
   // Track exercise completion
   const [exerciseStatus, setExerciseStatus] = useState<boolean[]>(() =>
@@ -152,10 +150,26 @@ const Dashboard = () => {
   // Handler for workout completion
   const handleWorkoutComplete = () => {
     if (allExercisesDone) {
+      // Update progress
       setProgress(prevProgress => {
         const newVal = Math.min(100, prevProgress + 5);
         return newVal;
       });
+
+      // Update weekly workouts
+      const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const adjustedIndex = today === 0 ? 6 : today - 1; // Convert to 0-6 where 0 = Monday
+      
+      setWeeklyWorkouts(prev => {
+        const updated = [...prev];
+        updated[adjustedIndex] = {
+          ...updated[adjustedIndex],
+          completed: true
+        };
+        return updated;
+      });
+
+      // Show success toast
       toast({
         title: "Workout Complete!",
         description: "Great job completing your session and all exercises.",

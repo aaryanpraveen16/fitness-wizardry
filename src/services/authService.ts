@@ -36,58 +36,115 @@ export interface LoginRequest {
 }
 
 export interface AuthResponse {
-  user: {
-    userId: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    height: number;
-    weight: number;
-  };
   token: string;
+  user: User;
 }
 
 // Store token key
-const TOKEN_KEY = 'jwt';
+export const TOKEN_KEY = 'jwt';
+export const USER_KEY = 'user';
 
 // Login function
 export const login = async (data: LoginRequest): Promise<AuthResponse> => {
   try {
-    const response = await api.post<AuthResponse>('/auth/login', data);
+    // First, get the token
+    const response = await api.post<{ token: string }>('/auth/login', data);
+    const { token } = response.data;
+    
+    console.log("Login successful, token received:", token ? "Token exists" : "No token");
+    
     // Store token
-    localStorage.setItem(TOKEN_KEY, response.data.token);
-    return response.data;
+    localStorage.setItem(TOKEN_KEY, token);
+    console.log("Token stored in localStorage with key:", TOKEN_KEY);
+    
+    // Create a new axios instance with the token
+    const authApi = axios.create({
+      baseURL: API_BASE_URL,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    // Extract email from token
+    const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+    const email = tokenPayload.sub;
+    console.log("Extracted email from token:", email);
+    
+    // Fetch user details using the email
+    const encodedEmail = encodeURIComponent(email);
+    console.log("Fetching user details for email:", email, "Encoded:", encodedEmail);
+    const userResponse = await authApi.get<User>(`/auth/user/email/${encodedEmail}`);
+    const user = userResponse.data;
+    console.log("User details received:", user);
+    
+    // Store user data
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    
+    return {
+      token,
+      user
+    };
   } catch (error) {
+    console.error("Login error:", error);
     if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || 'Login failed');
+      const errorMessage = error.response?.data?.message || error.response?.data || 'Login failed';
+      throw new Error(errorMessage);
     }
     throw error;
   }
 };
 
-// Mock signup function
-export const signup = async (name: string, email: string, password: string): Promise<AuthResponse> => {
-  // Simulate API request
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const response: AuthResponse = {
-        user: {
-          userId: Math.floor(Math.random() * 1000),
-          firstName: name.split(' ')[0], // Assuming 'name' is a full name separated by a space
-          lastName: name.split(' ')[1], // Assuming 'name' is a full name separated by a space
-          email: email,
-          height: 0, // Default height, should be provided by actual user data
-          weight: 0, // Default weight, should be provided by actual user data
-        },
-        token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMyIsIm5hbWUiOiJUZXN0IFVzZXIiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJyb2xlIjoidXNlciJ9.eRkK1F0G8_nXBhr9gmgI9lUavj9qL0vvQ_9ZkkXaYJQ"
-      };
-      
-      // Store token
-      localStorage.setItem(TOKEN_KEY, response.token);
-      
-      resolve(response);
-    }, 1000);
-  });
+// Register function
+export const register = async (data: RegisterRequest): Promise<User> => {
+  try {
+    const response = await api.post<User>('/auth/register', data);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Registration failed');
+    }
+    throw error;
+  }
+};
+
+// Get user details
+export const getUserDetails = async (userId: number): Promise<User> => {
+  try {
+    const response = await api.get<User>(`/auth/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Failed to get user details');
+    }
+    throw error;
+  }
+};
+
+// Update user
+export const updateUser = async (userId: number, data: RegisterRequest): Promise<User> => {
+  try {
+    const response = await api.put<User>(`/auth/user/${userId}`, data);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Failed to update user');
+    }
+    throw error;
+  }
+};
+
+// Delete user
+export const deleteUser = async (userId: number): Promise<string> => {
+  try {
+    const response = await api.delete<string>(`/auth/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Failed to delete user');
+    }
+    throw error;
+  }
 };
 
 // Get current user's token
@@ -95,9 +152,22 @@ export const getToken = (): string | null => {
   return localStorage.getItem(TOKEN_KEY);
 };
 
+// Get current user from localStorage
+export const getCurrentUser = (): User | null => {
+  const userStr = localStorage.getItem(USER_KEY);
+  if (!userStr) return null;
+  try {
+    return JSON.parse(userStr);
+  } catch (error) {
+    console.error("Error parsing user data:", error);
+    return null;
+  }
+};
+
 // Logout user
 export const logout = (): void => {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
   toast("Logged out successfully");
 };
 
@@ -131,20 +201,6 @@ export const getUserFromToken = (): User | null => {
   } catch (error) {
     console.error("Error parsing token:", error);
     return null;
-  }
-};
-
-export const register = async (data: RegisterRequest): Promise<AuthResponse> => {
-  try {
-    const response = await api.post<AuthResponse>('/auth/register', data);
-    // Store token
-    localStorage.setItem(TOKEN_KEY, response.data.token);
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || 'Registration failed');
-    }
-    throw error;
   }
 };
 

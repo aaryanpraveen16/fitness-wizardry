@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -13,6 +12,7 @@ import Signup from "./pages/Signup";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import WorkoutPlans from "./pages/WorkoutPlans";
+import WorkoutPlanDetail from "./pages/WorkoutPlanDetail";
 import Nutrition from "./pages/Nutrition";
 import Progress from "./pages/Progress";
 import Profile from "./pages/Profile";
@@ -52,6 +52,11 @@ const App: React.FC = () => {
                 <Route path="/workout-plans" element={
                   <PrivateRoute>
                     <WorkoutPlans />
+                  </PrivateRoute>
+                } />
+                <Route path="/workout-plan/:planId" element={
+                  <PrivateRoute>
+                    <WorkoutPlanDetail />
                   </PrivateRoute>
                 } />
                 <Route path="/nutrition" element={

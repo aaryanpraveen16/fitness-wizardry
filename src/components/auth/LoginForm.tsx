@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { login } from "@/services/authService";
+import { login, USER_KEY } from "@/services/authService";
 import { useAuth } from "@/contexts/AuthContext";
 import { User, Lock, Mail } from "lucide-react";
 
@@ -45,15 +45,21 @@ const LoginForm = () => {
     }
     
     try {
+      console.log("Submitting login form with email:", email);
       // Real login attempt with the auth service
       const response = await login({ email, password });
+      console.log("Login response:", response);
       
       // Save user to context
       authLogin(response.user);
       
+      // Update navbar by triggering a window event
+      window.dispatchEvent(new Event('authStateChanged'));
+      
       toast.success("Login successful!");
       navigate(from, { replace: true });
     } catch (error) {
+      console.error("Login form error:", error);
       toast.error(error instanceof Error ? error.message : "Login failed. Please check your credentials.");
     } finally {
       setIsLoading(false);
@@ -75,8 +81,12 @@ const LoginForm = () => {
         weight: 70
       };
       
-      // Save demo user to context
+      // Save demo user to context and localStorage
+      localStorage.setItem(USER_KEY, JSON.stringify(demoUser));
       authLogin(demoUser);
+      
+      // Update navbar by triggering a window event
+      window.dispatchEvent(new Event('authStateChanged'));
       
       toast.success("Demo login successful!");
       navigate("/dashboard");

@@ -79,19 +79,27 @@ const Nutrition = () => {
     setSearchResults(results);
   };
   
-  const handleAddFood = (food: Food, mealType: Meal['type']) => {
-    addFoodToMeal(userId, selectedDate, mealType, food);
-    toast({
-      title: "Food added",
-      description: `${food.name} added to your ${mealType}`,
-    });
-    
-    // Refresh meals
-    loadMeals();
-    
-    // Clear search if in search tab
-    setSearchQuery("");
-    setSearchResults([]);
+  const handleAddFood = async (food: Food, mealType: Meal['type']) => {
+    try {
+      await addFoodToMeal(userId, selectedDate, mealType, food);
+      toast({
+        title: "Food added",
+        description: `${food.name} added to your ${mealType}`,
+      });
+      
+      // Refresh meals
+      loadMeals();
+      
+      // Clear search if in search tab
+      setSearchQuery("");
+      setSearchResults([]);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add food. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleRemoveFood = (mealId: number, foodId: number) => {
