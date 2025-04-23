@@ -40,9 +40,9 @@ const App: React.FC = () => {
                 
                 {/* Protected routes */}
                 <Route path="/onboarding" element={
-                  <PrivateRoute>
+                  // <PrivateRoute>
                     <Onboarding />
-                  </PrivateRoute>
+                  // </PrivateRoute>
                 } />
                 <Route path="/dashboard" element={
                   <PrivateRoute>
