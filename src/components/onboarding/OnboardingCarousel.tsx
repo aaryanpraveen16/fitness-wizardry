@@ -51,6 +51,7 @@ const OnboardingCarousel = () => {
 
   const nextSlide = () => {
     if (currentSlide === slides.length - 1) {
+      // Redirect to signup page instead of dashboard
       navigate("/signup");
     } else {
       setCurrentSlide((prev) => prev + 1);
