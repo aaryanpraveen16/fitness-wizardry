@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,8 @@ const SignupForm = () => {
   const [weight, setWeight] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  // No need to use login as we're not logging anyone in after signup
+  // const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,11 +68,9 @@ const SignupForm = () => {
         weight: parseFloat(weight)
       });
       
-      // Save user to context
-      login(response.user);
-      
-      toast.success("Account created successfully!");
-      navigate("/onboarding");
+      // Don't log in user here, just notify and redirect to login
+      toast.success("Account created! Please log in.");
+      navigate("/login");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Sign up failed. Please try again.");
     } finally {
