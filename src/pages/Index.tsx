@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -7,9 +7,6 @@ import { ArrowRight } from 'lucide-react';
 const Index = () => {
   const navigate = useNavigate();
 
-  // For now, this is the landing page that will redirect to onboarding
-  // Later, this could check if the user is logged in and redirect to dashboard instead
-  
   const handleGetStarted = () => {
     navigate('/onboarding');
   };
@@ -58,7 +55,15 @@ const Index = () => {
         {/* Right content - Graphics */}
         <div className="flex-1 p-8 flex justify-center">
           <div className="relative w-full max-w-md aspect-square rounded-xl bg-gradient-to-br from-fitness-teal via-fitness-blue to-fitness-purple flex items-center justify-center overflow-hidden">
-            <div className="text-white text-4xl font-bold">Fitness Graphics</div>
+            <img 
+              src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?ixid=M3w1NDc0MTZ8MHwxfHNlYXJjaHwxfHxneW18ZW58MHx8fHwxNzE0MDM2ODM5fDA&ixlib=rb-4.0.3&w=1200&fit=max" 
+              alt="Fitness Gym Workout" 
+              className="absolute inset-0 w-full h-full object-cover opacity-70"
+            />
+            <div className="absolute inset-0 bg-black/30 z-10"></div>
+            <div className="relative z-20 text-white text-2xl font-bold text-center px-4 text-shadow">
+              Transform Your Body, Elevate Your Life
+            </div>
             <div className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full bg-accent/30 blur-xl"></div>
             <div className="absolute -top-10 -left-10 w-40 h-40 rounded-full bg-primary/30 blur-xl"></div>
           </div>
