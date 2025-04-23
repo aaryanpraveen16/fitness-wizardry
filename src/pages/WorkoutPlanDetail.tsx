@@ -44,10 +44,13 @@ const WorkoutPlanDetail = () => {
     if (!user || !plan) return;
     
     try {
+      toast.success("Workout plan assigned successfully!");
+      
       const success = assignWorkoutPlan(user.userId, plan.id);
       if (success) {
-        toast.success("Workout plan assigned successfully!");
-        navigate("/dashboard");
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 500);
       } else {
         toast.error("Failed to assign workout plan");
       }

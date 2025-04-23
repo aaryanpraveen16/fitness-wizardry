@@ -16,11 +16,11 @@ import ExerciseTracker from '@/components/dashboard/ExerciseTracker';
 const Dashboard = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
-  const [progress, setProgress] = useState(68); // Sample progress
+  const [progress, setProgress] = useState(0); // Initialize progress at 0%
   const [weeklyWorkouts, setWeeklyWorkouts] = useState([
-    { day: 'Mon', completed: true, focus: 'Chest & Triceps' },
-    { day: 'Tue', completed: true, focus: 'Back & Biceps' },
-    { day: 'Wed', completed: true, focus: 'Rest Day' },
+    { day: 'Mon', completed: false, focus: 'Chest & Triceps' },
+    { day: 'Tue', completed: false, focus: 'Back & Biceps' },
+    { day: 'Wed', completed: false, focus: 'Rest Day' },
     { day: 'Thu', completed: false, focus: 'Legs & Shoulders' },
     { day: 'Fri', completed: false, focus: 'Full Body' },
     { day: 'Sat', completed: false, focus: 'Cardio' },
@@ -53,10 +53,10 @@ const Dashboard = () => {
   };
 
   const stats = [
-    { name: "Workouts Completed", value: "12", icon: <Dumbbell className="h-4 w-4" /> },
-    { name: "Active Calories", value: "4,320", icon: <Flame className="h-4 w-4" /> },
-    { name: "Weekly Streak", value: "3 days", icon: <Trophy className="h-4 w-4" /> },
-    { name: "Recovery Score", value: "85%", icon: <Heart className="h-4 w-4" /> }
+    { name: "Workouts Completed", value: "0", icon: <Dumbbell className="h-4 w-4" /> },
+    { name: "Active Calories", value: "0", icon: <Flame className="h-4 w-4" /> },
+    { name: "Weekly Streak", value: "0 days", icon: <Trophy className="h-4 w-4" /> },
+    { name: "Recovery Score", value: "0%", icon: <Heart className="h-4 w-4" /> }
   ];
 
   const [showWorkoutModal, setShowWorkoutModal] = useState(false);

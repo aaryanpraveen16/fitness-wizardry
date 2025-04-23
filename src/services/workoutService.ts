@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { getToken } from './authService';
 
@@ -178,14 +177,21 @@ export const assignWorkoutPlan = (userId: number, planId: number): boolean => {
   const plan = getWorkoutPlanById(planId);
   if (!plan) return false;
   
+  // Get existing workouts once
+  const existingWorkouts = JSON.parse(localStorage.getItem(WORKOUT_LOG_KEY) || '[]') as Workout[];
+  
   // Create workouts from the plan
-  plan.workouts.forEach(workout => {
-    saveWorkout({
-      ...workout,
-      id: undefined, // Generate new IDs for these workouts
-      userId
-    });
-  });
+  const newWorkouts = plan.workouts.map(workout => ({
+    ...workout,
+    id: Date.now() + Math.floor(Math.random() * 1000), // Generate unique IDs
+    userId
+  }));
+  
+  // Add all new workouts at once
+  const updatedWorkouts = [...existingWorkouts, ...newWorkouts];
+  
+  // Save all workouts in a single localStorage operation
+  localStorage.setItem(WORKOUT_LOG_KEY, JSON.stringify(updatedWorkouts));
   
   return true;
 };
