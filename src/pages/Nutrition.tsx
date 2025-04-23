@@ -26,7 +26,8 @@ import {
   removeFoodFromMeal, 
   searchFoods, 
   saveCustomFood, 
-  calculateDailyNutrition 
+  calculateDailyNutrition,
+  logFood
 } from "@/services/foodService";
 
 const Nutrition = () => {
@@ -35,7 +36,11 @@ const Nutrition = () => {
   const [searchResults, setSearchResults] = useState<Food[]>([]);
   const [userId, setUserId] = useState(1); // Default user ID for now
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [meals, setMeals] = useState<Meal[]>([]);
+  const [meals, setMeals] = useState<Meal[]>(() => {
+    // Load meals from localStorage on initial render
+    const savedMeals = localStorage.getItem(`meals-${selectedDate}`);
+    return savedMeals ? JSON.parse(savedMeals) : [];
+  });
   const [showFoodModal, setShowFoodModal] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<Meal['type'] | null>(null);
   
@@ -55,18 +60,53 @@ const Nutrition = () => {
     fat: 65
   });
 
+  // Save meals to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(`meals-${selectedDate}`, JSON.stringify(meals));
+  }, [meals, selectedDate]);
+
   // Load meals and calculate totals on mount and when date/userId changes
   useEffect(() => {
     loadMeals();
   }, [selectedDate, userId]);
 
-  const loadMeals = () => {
-    const userMeals = getMeals(userId, selectedDate);
-    setMeals(userMeals);
-    
-    // Calculate totals
-    const totals = calculateDailyNutrition(userId, selectedDate);
-    setDailyTotals(totals);
+  const loadMeals = async () => {
+    try {
+      // First try to load from localStorage
+      const savedMeals = localStorage.getItem(`meals-${selectedDate}`);
+      if (savedMeals) {
+        setMeals(JSON.parse(savedMeals));
+        return;
+      }
+
+      // If not in localStorage, fetch from backend
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/food/meals?date=${selectedDate}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch meals');
+      }
+      
+      const fetchedMeals = await response.json();
+      setMeals(fetchedMeals);
+      
+      // Save fetched meals to localStorage
+      localStorage.setItem(`meals-${selectedDate}`, JSON.stringify(fetchedMeals));
+      
+      // Calculate daily totals
+      const totals = calculateDailyNutrition(userId, selectedDate);
+      setDailyTotals(totals);
+    } catch (error) {
+      console.error('Error loading meals:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load meals. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleSearch = () => {
@@ -79,20 +119,47 @@ const Nutrition = () => {
     setSearchResults(results);
   };
   
-  const handleAddFood = async (food: Food, mealType: Meal['type']) => {
+  const handleAddFood = async (food: Food) => {
     try {
-      await addFoodToMeal(userId, selectedDate, mealType, food);
-      toast({
-        title: "Food added",
-        description: `${food.name} added to your ${mealType}`,
+      // Update meals state with the new food
+      setMeals(prevMeals => {
+        const updatedMeals = [...prevMeals];
+        const mealIndex = updatedMeals.findIndex(m => m.type === selectedMealType);
+        
+        if (mealIndex !== -1) {
+          updatedMeals[mealIndex] = {
+            ...updatedMeals[mealIndex],
+            foods: [...updatedMeals[mealIndex].foods, food]
+          };
+        } else {
+          // Create new meal if it doesn't exist
+          updatedMeals.push({
+            userId,
+            date: selectedDate,
+            type: selectedMealType,
+            foods: [food]
+          });
+        }
+        
+        return updatedMeals;
       });
-      
-      // Refresh meals
-      loadMeals();
-      
-      // Clear search if in search tab
-      setSearchQuery("");
-      setSearchResults([]);
+
+      // Update daily totals
+      setDailyTotals(prev => ({
+        ...prev,
+        calories: prev.calories + food.calories,
+        protein: prev.protein + food.protein,
+        carbs: prev.carbs + food.carbs,
+        fat: prev.fat + food.fat
+      }));
+
+      toast({
+        title: "Success",
+        description: `Added ${food.name} to ${selectedMealType}`,
+      });
+
+      setShowFoodModal(false);
+      setSelectedMealType(null);
     } catch (error) {
       toast({
         title: "Error",
@@ -102,17 +169,60 @@ const Nutrition = () => {
     }
   };
   
-  const handleRemoveFood = (mealId: number, foodId: number) => {
-    const success = removeFoodFromMeal(mealId, foodId);
-    
-    if (success) {
-      toast({
-        title: "Food removed",
-        description: "Food item removed from your log",
+  const handleRemoveFood = async (mealId: number, foodId: number) => {
+    try {
+      // Remove food from backend
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/food/remove/${mealId}/${foodId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+        }
       });
-      
-      // Refresh meals
-      loadMeals();
+
+      if (!response.ok) {
+        throw new Error('Failed to remove food');
+      }
+
+      // Update the meals state
+      setMeals(prevMeals => {
+        const updatedMeals = prevMeals.map(meal => {
+          if (meal.id === mealId) {
+            return {
+              ...meal,
+              foods: meal.foods.filter(food => food.id !== foodId)
+            };
+          }
+          return meal;
+        });
+        return updatedMeals;
+      });
+
+      // Update daily totals
+      const removedFood = meals
+        .find(meal => meal.id === mealId)
+        ?.foods.find(food => food.id === foodId);
+
+      if (removedFood) {
+        setDailyTotals(prev => ({
+          ...prev,
+          calories: prev.calories - removedFood.calories,
+          protein: prev.protein - removedFood.protein,
+          carbs: prev.carbs - removedFood.carbs,
+          fat: prev.fat - removedFood.fat
+        }));
+      }
+
+      toast({
+        title: "Success",
+        description: "Food removed successfully",
+      });
+    } catch (error) {
+      console.error('Error removing food:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove food. Please try again.",
+        variant: "destructive"
+      });
     }
   };
   
@@ -126,7 +236,7 @@ const Nutrition = () => {
     
     // If a meal type was selected, add it to that meal
     if (selectedMealType) {
-      handleAddFood(savedFood, selectedMealType);
+      handleAddFood(savedFood);
       setSelectedMealType(null);
     }
   };
@@ -288,7 +398,7 @@ const Nutrition = () => {
                           meal.foods.map((food, j) => (
                             <div key={j} className="flex justify-between items-center py-2 border-b">
                               <div>
-                                <p>{food.name}</p>
+                                <p className="font-medium">{food.name}</p>
                                 <p className="text-sm text-muted-foreground">
                                   P: {food.protein}g | C: {food.carbs}g | F: {food.fat}g
                                 </p>
@@ -317,7 +427,7 @@ const Nutrition = () => {
                           variant="ghost" 
                           size="sm" 
                           className="flex items-center mt-2"
-                          onClick={() => setSelectedMealType(mealType as Meal['type'])}
+                          onClick={() => openAddFoodModal(mealType as Meal['type'])}
                         >
                           <Plus className="h-4 w-4 mr-1" /> Add food to {mealType}
                         </Button>
@@ -358,27 +468,10 @@ const Nutrition = () => {
                               <Button 
                                 size="sm" 
                                 className="flex items-center gap-1"
-                                onClick={() => document.getElementById(`dropdown-${i}`)?.classList.toggle('hidden')}
+                                onClick={() => handleAddFood(food)}
                               >
-                                Add <ChevronDown className="h-3 w-3" />
+                                Add
                               </Button>
-                              <div 
-                                id={`dropdown-${i}`}
-                                className="absolute right-0 mt-1 bg-background border rounded-md shadow-md z-10 hidden"
-                              >
-                                {['breakfast', 'lunch', 'dinner', 'snacks'].map((mealType) => (
-                                  <button 
-                                    key={mealType}
-                                    className="block w-full text-left px-4 py-2 text-sm hover:bg-muted capitalize"
-                                    onClick={() => {
-                                      handleAddFood(food, mealType as Meal['type']);
-                                      document.getElementById(`dropdown-${i}`)?.classList.add('hidden');
-                                    }}
-                                  >
-                                    {mealType}
-                                  </button>
-                                ))}
-                              </div>
                             </div>
                           </div>
                         </div>
@@ -401,46 +494,10 @@ const Nutrition = () => {
       {showFoodModal && (
         <FoodEntryModal
           isOpen={showFoodModal}
-          onClose={() => {
-            setShowFoodModal(false);
-            setSelectedMealType(null);
-          }}
-          onSave={handleSaveCustomFood}
+          onClose={() => setShowFoodModal(false)}
+          onSave={handleAddFood}
+          mealType={selectedMealType}
         />
-      )}
-      
-      {/* Meal Type Selection Modal (when adding from search) */}
-      {selectedMealType && !showFoodModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background rounded-lg shadow-lg p-6 max-w-sm w-full">
-            <h3 className="text-lg font-medium mb-4">Add food to which meal?</h3>
-            <div className="space-y-2">
-              {['breakfast', 'lunch', 'dinner', 'snacks'].map((mealType) => (
-                <Button 
-                  key={mealType}
-                  variant={selectedMealType === mealType ? "default" : "outline"}
-                  className="w-full justify-start capitalize"
-                  onClick={() => setSelectedMealType(mealType as Meal['type'])}
-                >
-                  {mealType}
-                </Button>
-              ))}
-            </div>
-            <div className="flex justify-between mt-6">
-              <Button 
-                variant="ghost" 
-                onClick={() => setSelectedMealType(null)}
-              >
-                Cancel
-              </Button>
-              <Button onClick={() => {
-                openAddFoodModal(selectedMealType);
-              }}>
-                Next
-              </Button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

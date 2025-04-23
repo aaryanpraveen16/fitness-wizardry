@@ -1,137 +1,88 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Food } from "@/services/foodService";
+import { Food, logFood } from "@/services/foodService";
+import { useToast } from "@/hooks/use-toast";
 
 interface FoodEntryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (food: Food) => void;
   initialFood?: Food;
+  mealType: string;
 }
 
 const FoodEntryModal: React.FC<FoodEntryModalProps> = ({ 
   isOpen, 
   onClose, 
   onSave,
-  initialFood
+  initialFood,
+  mealType
 }) => {
-  const [food, setFood] = useState<Food>(
-    initialFood || {
-      name: "",
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fat: 0
-    }
-  );
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [foodName, setFoodName] = useState("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFood(prev => ({
-      ...prev,
-      [name]: name === "name" ? value : Number(value)
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(food);
-    onClose();
+    setIsLoading(true);
+    
+    try {
+      const loggedFood = await logFood({
+        foodName: foodName,
+        mealType: mealType
+      });
+      
+      onSave(loggedFood);
+      onClose();
+      
+      toast({
+        title: "Success",
+        description: `Successfully logged ${foodName}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to log food. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{initialFood ? "Edit Food" : "Add Custom Food"}</DialogTitle>
+          <DialogTitle>Add Food</DialogTitle>
           <DialogDescription>
-            Enter the nutritional information for your food.
+            Enter the name of the food you want to log.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid w-full items-center gap-2">
-            <Label htmlFor="name">Food Name</Label>
+            <Label htmlFor="foodName">Food Name</Label>
             <Input
-              id="name"
-              name="name"
-              value={food.name}
-              onChange={handleChange}
-              placeholder="e.g., Homemade Banana Bread"
+              id="foodName"
+              value={foodName}
+              onChange={(e) => setFoodName(e.target.value)}
+              placeholder="e.g., Apple"
               required
+              disabled={isLoading}
             />
-          </div>
-
-          <div className="grid w-full items-center gap-2">
-            <Label htmlFor="calories">Calories</Label>
-            <Input
-              id="calories"
-              name="calories"
-              type="number"
-              min="0"
-              value={food.calories}
-              onChange={handleChange}
-              placeholder="e.g., 250"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div className="grid w-full items-center gap-2">
-              <Label htmlFor="protein">Protein (g)</Label>
-              <Input
-                id="protein"
-                name="protein"
-                type="number"
-                min="0"
-                step="0.1"
-                value={food.protein}
-                onChange={handleChange}
-                placeholder="e.g., 5"
-                required
-              />
-            </div>
-
-            <div className="grid w-full items-center gap-2">
-              <Label htmlFor="carbs">Carbs (g)</Label>
-              <Input
-                id="carbs"
-                name="carbs"
-                type="number"
-                min="0"
-                step="0.1"
-                value={food.carbs}
-                onChange={handleChange}
-                placeholder="e.g., 30"
-                required
-              />
-            </div>
-
-            <div className="grid w-full items-center gap-2">
-              <Label htmlFor="fat">Fat (g)</Label>
-              <Input
-                id="fat"
-                name="fat"
-                type="number"
-                min="0"
-                step="0.1"
-                value={food.fat}
-                onChange={handleChange}
-                placeholder="e.g., 10"
-                required
-              />
-            </div>
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit">{initialFood ? "Update" : "Add"}</Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Adding..." : "Add Food"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

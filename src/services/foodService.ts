@@ -25,7 +25,8 @@ api.interceptors.request.use((config) => {
 // Food and meal types
 export interface Food {
   id?: number;
-  name: string;
+  foodName: string;
+  name?: string;
   calories: number;
   protein: number;
   carbs: number;
@@ -37,10 +38,6 @@ export interface Food {
 export interface FoodLogDto {
   foodName: string;
   mealType: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
 }
 
 export interface Meal {
@@ -52,10 +49,10 @@ export interface Meal {
 }
 
 // Log food
-export const logFood = async (foodLogDto: FoodLogDto): Promise<string> => {
+export const logFood = async (foodLogDto: FoodLogDto): Promise<Food> => {
   try {
     console.log("Attempting to log food:", foodLogDto);
-    const response = await api.post<string>('/food/log', foodLogDto);
+    const response = await api.post<Food>('/food/log', foodLogDto);
     console.log("Food logged successfully:", response.data);
     return response.data;
   } catch (error) {
@@ -113,10 +110,6 @@ export const addFoodToMeal = async (userId: number, date: string, mealType: Meal
     const foodLogDto: FoodLogDto = {
       foodName: food.name,
       mealType: mealType,
-      calories: food.calories,
-      protein: food.protein,
-      carbs: food.carbs,
-      fat: food.fat
     };
 
     await logFood(foodLogDto);
