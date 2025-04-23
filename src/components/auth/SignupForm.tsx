@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -58,7 +57,7 @@ const SignupForm = () => {
     }
 
     try {
-      const userData = await register({
+      const response = await register({
         firstName,
         lastName,
         email,
@@ -67,8 +66,8 @@ const SignupForm = () => {
         weight: parseFloat(weight)
       });
       
-      // Save user to context - fix: register() now returns the User directly
-      login(userData);
+      // Save user to context
+      login(response.user);
       
       toast.success("Account created successfully!");
       navigate("/onboarding");
